@@ -1,60 +1,107 @@
 import fs from "node:fs/promises";
-// import addVidDetail from "../UploadedFiles/vedio-log.js";
+import DbSyncRead from "../DBSync/readSync.js";
 import DbSyncWrite from "../DBSync/writeSync.js";
 import { v4 as uuidv4 } from "uuid";
 import { getThumb, getVidDetail } from "../Utility/utility.js";
-import { resolve } from "node:path";
+import path from "node:path";
+import { fileURLToPath } from "url";
 
-// upload file route, save file data ....
+// get current directory in ES6
+const __filename = fileURLToPath(import.meta.url); // Convert URL to file path
+const __dirname = path.dirname(__filename); // Get directory name
+
+//send Vid List Route
+export async function sendVidList(req, res) {
+  console.log("reach sendVidList");
+  const dataObject = DbSyncRead();
+  res.status(200).send(JSON.stringify(dataObject));
+}
+
+// upload file route
 export async function UploadFile(req, res) {
   //extract file name from header
-  const fileName = req.headers["file-name"];
+  const fileName = req.headers["x-file-name"].toLowerCase();
+  console.log("file name: ", fileName);
 
-  // streaming the file content
-  const fileHandle = await fs.open(`./UploadedFiles/${fileName}`, "w");
+  /**
+   *  save file: use streaming the file content (no npm package)
+   * using stream guarantee exact file size to be uploaded
+   * and no memory issues, as the file will transferred in chunks to hdd
+   */
+
+  const filePath = path.join(__dirname, "..", `./UploadedFiles/${fileName}`);
+
+  const fileHandle = await fs.open(filePath, "w");
   const writableStream = fileHandle.createWriteStream();
+  console.log("file path is : ", filePath);
 
+  // read write data in stream
   req.on("data", (chunk) => {
     writableStream.write(chunk);
   });
-  req.on("end", () => {
-    fileHandle.close();
-  });
+
+  // on end all data has been
   req.on("end", async () => {
-    // save file name and size
-    // const fileName = req.headers["file-name"];
-    const fileSize = req.headers["content-length"] / (1024 * 1024);
+    fileHandle.close();
+    console.log("files uploaded successfully");
 
+    // extract thump from vedio file
     try {
-      // extract thump from vedio file
-      const thumbPath = await getThumb({
-        vedUrl: `./UploadedFiles/${fileName}`,
-      });
-      if (thumbPath) {
-        console.log("thumb generated ok");
-      }
-
-      // extract file details
-      const vidDetail = await getVidDetail({
-        vedUrl: `./UploadedFiles/${fileName}`,
-      });
-
-      console.log("*********ved detail from probe *************");
-      console.log(vidDetail.vedTime); // time in second
-      console.log(vidDetail.vedResolution); // Resolution ex: 320x420
-
-      // add data to log file
-      DbSyncWrite({
-        id: uuidv4(),
-        Name: fileName,
-        Size: fileSize.toFixed(1),
-        time: vidDetail.vedTime,
-        resolution: vidDetail.vedResolution,
-      });
+      const thumbPath = await getThumb({ vedioPath: filePath });
     } catch (error) {
-      console.log("something went wroing ");
-      console.log(error);
+      console.log("some error in getThubm", error);
     }
+
+    let time = 0;
+    let size = 0;
+    let resolution = 0;
+
+    // extract vedio information using ffprobe
+    try {
+      const vedioDetail = await getVidDetail({ vedioPath: filePath });
+      time = vedioDetail.vedTime;
+      size = vedioDetail.vedSize;
+      resolution = vedioDetail.vedResolution;
+
+      // print to console
+      console.log(
+        vedioDetail.vedTime,
+        vedioDetail.vedResolution,
+        vedioDetail.vedSize
+      );
+    } catch (error) {
+      console.log("error in get vid detail", error);
+    }
+
+    let base64Image = "";
+    try {
+      // prepare thumb path
+      const fileNameWithoutExt = path.parse(fileName).name;
+      const thumbPath = path.resolve(
+        __dirname,
+        "..",
+        "thumb",
+        `${fileNameWithoutExt}.jpg`
+      );
+      // read thumb image file
+      const dataImage = await fs.readFile(thumbPath);
+      // Convert the thumb to a Base64 string to send to frontEnd
+      base64Image = Buffer.from(dataImage).toString("base64");
+    } catch (error) {
+      console.log("error during reading thumb file and decode it", error);
+    }
+
+    // write all vedio info to file
+    DbSyncWrite({
+      id: uuidv4(),
+      Name: fileName,
+      Size: size,
+      time: time,
+      resolution: resolution,
+      thumb: base64Image,
+    });
+
+    // finally add data to log file
 
     res.status(200).send("okay");
   });
