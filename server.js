@@ -1,9 +1,13 @@
 import express from "express";
-import { UploadFile, sendVidList } from "./Routes/Routes.js";
+import { UploadFile, sendVidList, extractAudio } from "./Routes/Routes.js";
+
 import cors from "cors";
 
 const app = express();
 app.use(cors()); // enable cors
+
+// Middleware to parse JSON data
+app.use(express.json());
 
 const PORT = 5112;
 
@@ -17,6 +21,11 @@ app.get("/", async (req, res) => {
 app.post("/uploadFile", async (req, res) => {
   console.log("route /uploadFile targeted !");
   await UploadFile(req, res);
+});
+
+// extract audio
+app.post("/extractAudio", async (req, res) => {
+  await extractAudio(req, res);
 });
 
 const server = app.listen(PORT, "0.0.0.0", () => {

@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import DbSyncRead from "../DBSync/readSync.js";
 import DbSyncWrite from "../DBSync/writeSync.js";
 import { v4 as uuidv4 } from "uuid";
-import { getThumb, getVidDetail } from "../Utility/utility.js";
+import { getThumb, getVidDetail, getAudio } from "../Utility/utility.js";
 import path from "node:path";
 import { fileURLToPath } from "url";
 
@@ -109,4 +109,26 @@ export async function UploadFile(req, res) {
     console.log(err);
     res.status(500).send(err);
   });
+}
+
+// extract audio
+export async function extractAudio(req, res) {
+  console.log("route extract Audio Reached");
+
+  // extract by id
+  const id = req.body.vedioId;
+  console.log(id);
+
+  try {
+    const isExtracted = await getAudio(id);
+    console.log("is Extracted: ", isExtracted);
+    if (isExtracted) {
+      res.json({ status: "OK", message: "Request successful" });
+    } else {
+      res.status(500);
+    }
+  } catch (error) {
+    console.log("error in extraction audio", error);
+    res.status(500);
+  }
 }

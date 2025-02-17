@@ -11,7 +11,6 @@ const __dirname = dirname(__filename); // Get directory name
 // Thumb saved in .jpg format same vedio file name
 // command :
 // ffmpeg -ss 00:00:18 -i s2.mpeg -vframes 1 -q:v 2 ./thumb/s2.jpg
-
 export async function getThumb({ vedioPath }) {
   console.log("inside get thumb");
 
@@ -119,4 +118,69 @@ export async function getVidDetail({ vedioPath }) {
       console.error("Error spawning ffprobe:", err);
     });
   });
+}
+
+export async function getAudio(id) {
+  console.log("Audio Extraction Begin ...");
+
+  //loop through DBSync.json (our DB) and find the vedio object
+  const DBfile = DbSyncRead();
+  const vedios = DBfile.data;
+
+  const vedio = vedios.filter((vedio) => vedio.id == id);
+  // just took first result
+  console.log(vedio[0].Name);
+  console.log(vedio[0].id);
+
+  // Path to the output audio file
+  const fileName = vedio[0].Name; // baby.mp4
+  const fileNameWithoutExt = path.parse(fileName).name; // baby
+  const outputAudioPath = path.join(
+    __dirname,
+    "..",
+    "audio",
+    `${fileNameWithoutExt}.mp3`
+  );
+
+  // Path to vedio file
+  const vedioPath = path.join(__dirname, "..", "UploadedFiles", fileName);
+
+  return new Promise((resolve, reject) => {
+    // Spawn an ffmpeg process
+    const ffmpeg = spawn("ffmpeg", [
+      "-y", // Overwrite output files without asking
+      "-i",
+      vedioPath, // Input file
+      "-q:a",
+      "0", // Audio quality (0 is the best)
+      "-map",
+      "a", // Map only the audio stream
+      "-loglevel",
+      "quiet", // Suppress all log output
+      outputAudioPath, // Output file
+    ]);
+
+    // Handle ffmpeg output
+    ffmpeg.stdout.on("data", (data) => {
+      console.log(`stdout: ${data}`);
+    });
+
+    ffmpeg.stderr.on("data", (data) => {
+      console.error(`stderr: ${data}`);
+    });
+
+    ffmpeg.on("close", (code) => {
+      if (code === 0) {
+        console.log("Audio extraction completed successfully.");
+        resolve(true);
+      } else {
+        console.error(`ffmpeg process exited with code ${code}`);
+        reject();
+      }
+    });
+
+    ffmpeg.on("error", (err) => {
+      console.error("Failed to start subprocess:", err);
+    });
+  }); //end promise
 }
