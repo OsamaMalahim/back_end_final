@@ -22,13 +22,11 @@ export async function UploadFile(req, res) {
   //extract file name from header
   const fileName = req.headers["x-file-name"].toLowerCase();
   console.log("file name: ", fileName);
-
   /**
    *  save file: use streaming the file content (no npm package)
    * using stream guarantee exact file size to be uploaded
    * and no memory issues, as the file will transferred in chunks to hdd
    */
-
   const filePath = path.join(__dirname, "..", `./UploadedFiles/${fileName}`);
 
   const fileHandle = await fs.open(filePath, "w");
@@ -99,6 +97,7 @@ export async function UploadFile(req, res) {
       time: time,
       resolution: resolution,
       thumb: base64Image,
+      audio: false,
     });
 
     // finally add data to log file
@@ -125,10 +124,40 @@ export async function extractAudio(req, res) {
     if (isExtracted) {
       res.json({ status: "OK", message: "Request successful" });
     } else {
-      res.status(500);
+      res.sendStatus(500);
     }
   } catch (error) {
     console.log("error in extraction audio", error);
-    res.status(500);
+    res.sendStatus(500);
   }
+}
+
+export async function downloadAudio(req, res) {
+  const id = req.params.id;
+  console.log("reach download audio file, id: ", id);
+
+  //prepare filePath :
+  //loop through DBSync.json (our DB) and find the vedio object
+  const DBfile = DbSyncRead();
+  const vedios = DBfile.data;
+  const vedio = vedios.filter((vedio) => vedio.id == id);
+  // just took first result
+  console.log(vedio[0].Name);
+  console.log(vedio[0].id);
+  // Path to the output audio file
+  const fileName = vedio[0].Name; // baby.mp4
+  const fileNameWithoutExt = path.parse(fileName).name; // baby
+  const filePath = path.join(
+    __dirname,
+    "..",
+    "audio",
+    `${fileNameWithoutExt}.mp3`
+  );
+
+  res.download(filePath, fileName, (err) => {
+    if (err) {
+      console.error("Error downloading file:", err);
+      res.status(500).send("Could not download the file.");
+    }
+  });
 }

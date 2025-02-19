@@ -1,5 +1,5 @@
 import express from "express";
-import { UploadFile, sendVidList, extractAudio } from "./Routes/Routes.js";
+import { UploadFile, sendVidList, extractAudio, downloadAudio } from "./Routes/Routes.js";
 
 import cors from "cors";
 
@@ -30,6 +30,11 @@ app.post("/extractAudio", async (req, res) => {
 
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`running on PORT ${PORT}`);
+});
+
+//downlaod audio file
+app.get("/:id", async (req, res) => {  
+  await downloadAudio(req,res); 
 });
 
 // Graceful shutdown
