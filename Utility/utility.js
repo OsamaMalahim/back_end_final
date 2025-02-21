@@ -1,6 +1,7 @@
 import DbSyncRead from "../DBSync/readSync.js";
 import { spawn } from "node:child_process";
 import path from "node:path";
+import { updateAudioStatus } from "./utility2.js";
 
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -172,6 +173,8 @@ export async function getAudio(id) {
     ffmpeg.on("close", (code) => {
       if (code === 0) {
         console.log("Audio extraction completed successfully.");
+        // change audio extraction to true in our DB
+        updateAudioStatus(id);
         resolve(true);
       } else {
         console.error(`ffmpeg process exited with code ${code}`);
