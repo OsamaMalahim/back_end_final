@@ -132,6 +132,7 @@ export async function extractAudio(req, res) {
   }
 }
 
+// download audio
 export async function downloadAudio(req, res) {
   const id = req.params.id;
   console.log("reach download audio file, id: ", id);
@@ -153,6 +154,31 @@ export async function downloadAudio(req, res) {
     "audio",
     `${fileNameWithoutExt}.mp3`
   );
+
+  res.download(filePath, fileName, (err) => {
+    if (err) {
+      console.error("Error downloading file:", err);
+      res.status(500).send("Could not download the file.");
+    }
+  });
+}
+
+// download vedio
+export async function downloadVedio(req, res) {
+  console.log("reach vedio file id address: ", req.params.id);
+  //prepare filePath :
+  //loop through DBSync.json (our DB) and find the vedio object
+  const id = req.params.id;
+  const DBfile = DbSyncRead();
+  const vedios = DBfile.data;
+  const vedio = vedios.find((vedio) => vedio.id == id);
+  // just took first result
+  console.log(vedio.Name);
+  console.log(vedio.id);
+  // Path to the output audio file
+  const fileName = vedio.Name; // baby.mp4
+  // const fileNameWithoutExt = path.parse(fileName).name; // baby
+  const filePath = path.join(__dirname, "..", "UploadedFiles", fileName);
 
   res.download(filePath, fileName, (err) => {
     if (err) {

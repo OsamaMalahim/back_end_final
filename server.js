@@ -1,5 +1,11 @@
 import express from "express";
-import { UploadFile, sendVidList, extractAudio, downloadAudio } from "./Routes/Routes.js";
+import {
+  UploadFile,
+  sendVidList,
+  extractAudio,
+  downloadAudio,
+  downloadVedio,
+} from "./Routes/Routes.js";
 
 import cors from "cors";
 
@@ -33,8 +39,14 @@ const server = app.listen(PORT, "0.0.0.0", () => {
 });
 
 //downlaod audio file
-app.get("/:id", async (req, res) => {  
-  await downloadAudio(req,res); 
+app.get("/:id", async (req, res) => {
+  console.log("hit audio download");
+  await downloadAudio(req, res);
+});
+
+//downlaod vedio file
+app.get("/vedio/:id", async (req, res) => {
+  await downloadVedio(req, res);
 });
 
 // Graceful shutdown
