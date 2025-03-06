@@ -48,7 +48,7 @@ export async function getThumb({ vedioPath }) {
     const ffmpeg = spawn("ffmpeg", ffmpegArgs);
 
     ffmpeg.stderr.on("data", (data) => {
-      console.log(data.toString());
+      // console.log(data.toString());
     });
 
     ffmpeg.on("exit", () => {

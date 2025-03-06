@@ -2,50 +2,101 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import { spawn } from "child_process";
 
 const __filename = fileURLToPath(import.meta.url); // Convert URL to file path
 const __dirname = dirname(__filename); // Get directory name
 
-// Path to your JSON file
-const filePath = path.join(__dirname, "cars.json");
+// resize
+//ffmpeg -i input.mp4 -vf "scale=1280:720:flags=lanczos"
+//  -c:v libx264 -crf 23 -preset medium -c:a copy output.mp4
+//This command:
+// Resizes the video to 1280x720.
+// Uses the lanczos scaling algorithm for high quality.
+// Encodes the video with libx264 at a good quality (-crf 23).
+// Copies the audio stream without re-encoding.
+// Spawn an ffmpeg process
+const vedioPath = path.join(__dirname, "UploadedFiles", "baby.mp4");
+const outputAudioPath = path.join(__dirname, "resizedVedio", "baby2.mp4");
+const ffmpeg = spawn("ffmpeg", [
+  "-y", // Overwrite output files without asking
+  "-i",
+  vedioPath, // Input file
+  "-vf",
+  "scale=600:400:flags=lanczos", // Audio quality (0 is the best)
+  "-c:v",
+  "libx264", // Map only the audio stream
+  "-crf",
+  "23", // Suppress all log output
+  "-preset",
+  "medium",
+  "-c:a",
+  "copy",
+  outputAudioPath, // Output file
+]);
 
-// Function to update the year of a specific car
-function updateCarYear(carId, newYear) {
-  // Step 1: Read the JSON file
-  fs.readFile(filePath, "utf8", (err, data) => {
-    if (err) {
-      console.error("Error reading file:", err);
-      return;
-    }
+// Handle ffmpeg output
+ffmpeg.stdout.on("data", (data) => {
+  console.log(`stdout: ${data}`);
+});
 
-    // Parse the JSON data into a JavaScript object
-    let cars = JSON.parse(data);
+ffmpeg.stderr.on("data", (data) => {
+  console.error(`stderr: ${data}`);
+});
 
-    // Step 2: Find the specific car by its ID
-    const carToUpdate = cars.find((car) => car.id === carId);
+ffmpeg.on("close", (code) => {
+  if (code === 0) {
+    console.log("video resized completed successfully.");
+    // change audio extraction to true in our DB
+  } else {
+    console.error(`ffmpeg process exited with code ${code}`);
+  }
+});
 
-    if (carToUpdate) {
-      // Step 3: Update the year of the car
-      carToUpdate.year = newYear;
+ffmpeg.on("error", (err) => {
+  console.error("Failed to start subprocess:", err);
+});
 
-      // Step 4: Write the updated data back to the JSON file
-      fs.writeFile(filePath, JSON.stringify(cars, null, 2), "utf8", (err) => {
-        if (err) {
-          console.error("Error writing file:", err);
-        } else {
-          console.log(
-            `Successfully updated the year of car with ID ${carId} to ${newYear}`
-          );
-        }
-      });
-    } else {
-      console.error(`Car with ID ${carId} not found.`);
-    }
-  });
-}
+// // Path to your JSON file
+// const filePath = path.join(__dirname, "cars.json");
 
-// Example usage: Update the year of the car with ID 123 to 2023
-updateCarYear(1234, 3000);
+// // Function to update the year of a specific car
+// function updateCarYear(carId, newYear) {
+//   // Step 1: Read the JSON file
+//   fs.readFile(filePath, "utf8", (err, data) => {
+//     if (err) {
+//       console.error("Error reading file:", err);
+//       return;
+//     }
+
+//     // Parse the JSON data into a JavaScript object
+//     let cars = JSON.parse(data);
+
+//     // Step 2: Find the specific car by its ID
+//     const carToUpdate = cars.find((car) => car.id === carId);
+
+//     if (carToUpdate) {
+//       // Step 3: Update the year of the car
+//       carToUpdate.year = newYear;
+
+//       // Step 4: Write the updated data back to the JSON file
+//       fs.writeFile(filePath, JSON.stringify(cars, null, 2), "utf8", (err) => {
+//         if (err) {
+//           console.error("Error writing file:", err);
+//         } else {
+//           console.log(
+//             `Successfully updated the year of car with ID ${carId} to ${newYear}`
+//           );
+//         }
+//       });
+//     } else {
+//       console.error(`Car with ID ${carId} not found.`);
+//     }
+//   });
+// }
+
+// // Example usage: Update the year of the car with ID 123 to 2023
+// updateCarYear(1234, 3000);
 
 // import React, { useState } from "react";
 

@@ -5,8 +5,13 @@ import {
   extractAudio,
   downloadAudio,
   downloadVedio,
+  resizeVedio,
 } from "./Routes/Routes.js";
-
+import path from "node:path";
+import { fileURLToPath } from "url";
+// get current directory in ES6
+const __filename = fileURLToPath(import.meta.url); // Convert URL to file path
+const __dirname = path.dirname(__filename); // Get directory name
 import cors from "cors";
 
 const app = express();
@@ -14,6 +19,10 @@ app.use(cors()); // enable cors
 
 // Middleware to parse JSON data
 app.use(express.json());
+
+// Serve the "thumb" folder as a static directory
+//The images will now be accessible at http://localhost:5112/thumb/filename.jpg.
+app.use("/thumb", express.static(path.join(__dirname, "thumb")));
 
 const PORT = 5112;
 
@@ -23,7 +32,7 @@ app.get("/", async (req, res) => {
   await sendVidList(req, res);
 });
 
-// upload a file
+// upload a vedio file
 app.post("/uploadFile", async (req, res) => {
   console.log("route /uploadFile targeted !");
   await UploadFile(req, res);
@@ -47,6 +56,11 @@ app.get("/:id", async (req, res) => {
 //downlaod vedio file
 app.get("/vedio/:id", async (req, res) => {
   await downloadVedio(req, res);
+});
+
+//resize vedio
+app.post("/api/resizeVideo", async (req, res) => {
+  await resizeVedio(req,res);  
 });
 
 // Graceful shutdown

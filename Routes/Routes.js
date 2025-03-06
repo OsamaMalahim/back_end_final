@@ -38,7 +38,7 @@ export async function UploadFile(req, res) {
     writableStream.write(chunk);
   });
 
-  // on end all data has been
+  // on end all data has been uploaded
   req.on("end", async () => {
     fileHandle.close();
     console.log("files uploaded successfully");
@@ -46,6 +46,7 @@ export async function UploadFile(req, res) {
     // extract thump from vedio file
     try {
       const thumbPath = await getThumb({ vedioPath: filePath });
+      console.log("thumb path is: ", thumbPath);
     } catch (error) {
       console.log("some error in getThubm", error);
     }
@@ -71,24 +72,6 @@ export async function UploadFile(req, res) {
       console.log("error in get vid detail", error);
     }
 
-    let base64Image = "";
-    try {
-      // prepare thumb path
-      const fileNameWithoutExt = path.parse(fileName).name;
-      const thumbPath = path.resolve(
-        __dirname,
-        "..",
-        "thumb",
-        `${fileNameWithoutExt}.jpg`
-      );
-      // read thumb image file
-      const dataImage = await fs.readFile(thumbPath);
-      // Convert the thumb to a Base64 string to send to frontEnd
-      base64Image = Buffer.from(dataImage).toString("base64");
-    } catch (error) {
-      console.log("error during reading thumb file and decode it", error);
-    }
-
     // write all vedio info to file
     DbSyncWrite({
       id: uuidv4(),
@@ -96,7 +79,6 @@ export async function UploadFile(req, res) {
       Size: size,
       time: time,
       resolution: resolution,
-      thumb: base64Image,
       audio: false,
     });
 
@@ -186,4 +168,12 @@ export async function downloadVedio(req, res) {
       res.status(500).send("Could not download the file.");
     }
   });
+}
+
+// resize vedio
+export async function resizeVedio(req, res) {
+  console.log("hit resize route.....");
+  console.log(req.body.videoName);
+  console.log(req.body.width);
+  console.log(req.body.height);
 }
